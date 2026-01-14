@@ -9,7 +9,7 @@ from Pb2 import DEcwHisPErMsG_pb2 , MajoRLoGinrEs_pb2 , PorTs_pb2 , MajoRLoGinrE
 from cfonts import render, say
 
 
-#EMOTES BY Muthu X krix_i43
+#EMOTES BY drox
 
 
 
@@ -434,7 +434,7 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
         await asyncio.sleep(reconnect_delay)
 
 async def MaiiiinE():
-    Uid , Pw = '4183694476','760A75A16A76DB47824D4E76FBF44E48B075D6B09AC41ADEFA871B692D'
+    Uid , Pw = '4280222442','6B31341C32B84193FDB5A2BF1EA34434DBA8C62CA4031065F9732098911D5546'
     
 
     open_id , access_token = await GeNeRaTeAccEss(Uid , Pw)
