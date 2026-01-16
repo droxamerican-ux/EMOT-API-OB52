@@ -1,4 +1,107 @@
 import requests , os , psutil , sys , jwt , pickle , json , binascii , time , urllib3 , base64 , datetime , re , socket , threading , ssl , pytz , aiohttp
+from flask import Flask, request, jsonify
+app = Flask(__name__)
+
+# Global variables to store session data
+session_context = {
+    'key': None,
+    'iv': None,
+    'region': None,
+    'whisper_writer': None,
+    'online_writer': None
+}
+
+@app.route('/send_emote', methods=['GET'])
+def api_send_emote():
+    target_uid = request.args.get('uid')
+    emote_id = request.args.get('id')
+    
+    if not all([target_uid, emote_id]):
+        return jsonify({"error": "Missing uid or id parameter"}), 400
+    
+    if not all([session_context['key'], session_context['iv'], session_context['region']]):
+        return jsonify({"error": "Bot not fully connected yet"}), 503
+
+    try:
+        # Create a task to send the emote
+        asyncio.run_coroutine_threadsafe(
+            do_send_emote(int(target_uid), int(emote_id)),
+            bot_loop
+        )
+        return jsonify({"status": "success", "message": f"Emote {emote_id} sent to {target_uid}"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/join_tc', methods=['GET'])
+def api_join_tc():
+    tc = request.args.get('tc')
+    emote_id = request.args.get('id') or request.args.get('emote')
+    
+    # Collect UIDs from uid1, uid2, etc. OR 1, 2, 3, 4, 5
+    uids = []
+    for i in range(1, 6):
+        uid = request.args.get(f'uid{i}') or request.args.get(str(i))
+        if i == 1 and not uid:
+            uid = request.args.get('uid')
+        if uid:
+            uids.append(uid)
+    
+    # Check for short-hand emote params 1, 2, 3, 4, 5 ONLY if not used for UIDs
+    # Logic: if the value is likely a UID (long) vs Emote ID (often shorter but let's be flexible)
+    # The user said "if any people write only 1,2,3,4 uids but also emote was work"
+    # This implies 1=UID1, 2=UID2 etc.
+    # So I will prioritize 1-5 as UIDs and look for emote_id in 'id' or 'emote'
+    
+    if not tc:
+        return jsonify({"error": "Missing tc parameter"}), 400
+    
+    if not all([session_context['key'], session_context['iv'], session_context['region']]):
+        return jsonify({"error": "Bot not fully connected yet"}), 503
+
+    try:
+        # Create a task to join the team code and optionally send emotes
+        asyncio.run_coroutine_threadsafe(
+            do_join_tc(tc, uids, emote_id),
+            bot_loop
+        )
+        msg = f"Joined Team Code {tc}"
+        if uids and emote_id:
+            msg += f" and sent emote {emote_id} to {len(uids)} players"
+        elif emote_id:
+            msg += f" with emote {emote_id} prepared"
+        elif uids:
+            msg += f" (targeted {len(uids)} players)"
+        return jsonify({"status": "success", "message": msg})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+async def do_send_emote(target_uid, emote_id):
+    packet = await Emote_k(target_uid, emote_id, session_context['key'], session_context['iv'], session_context['region'])
+    await SEndPacKeT(session_context['whisper_writer'], session_context['online_writer'], 'OnLine', packet)
+
+async def do_join_tc(tc, uids=None, emote_id=None):
+    # Join the team
+    packet = await GenJoinSquadsPacket(tc, session_context['key'], session_context['iv'])
+    await SEndPacKeT(session_context['whisper_writer'], session_context['online_writer'], 'OnLine', packet)
+    
+    # Small delay for join to process
+    await asyncio.sleep(1)
+
+    # If UIDs and Emote ID are provided, send the emote to each UID
+    if uids and emote_id:
+        for uid in uids:
+            emote_packet = await Emote_k(int(uid), int(emote_id), session_context['key'], session_context['iv'], session_context['region'])
+            await SEndPacKeT(session_context['whisper_writer'], session_context['online_writer'], 'OnLine', emote_packet)
+            await asyncio.sleep(0.3) # Small delay between emotes
+
+    # After join (and emotes), leave the team but stay connected to game
+    leave_packet = await ExiT(None, session_context['key'], session_context['iv'])
+    await SEndPacKeT(session_context['whisper_writer'], session_context['online_writer'], 'OnLine', leave_packet)
+
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
+
+bot_loop = None
 from protobuf_decoder.protobuf_decoder import Parser
 from xC4 import * ; from xHeaders import *
 from datetime import datetime
@@ -334,19 +437,21 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
 
 
 
-                        if inPuTMsG.startswith('/x/'):
-                            CodE = inPuTMsG.split('/x/')[1]
+                        if inPuTMsG.startswith('/join'):
+                            CodE = inPuTMsG.split('/join')[1]
                             try:
                                 dd = chatdata['5']['data']['16']
                                 print('msg in private')
                                 EM = await GenJoinSquadsPacket(CodE , key , iv)
                                 await SEndPacKeT(whisper_writer , online_writer , 'OnLine' , EM)
-
-
+                                # After join, leave the team but stay connected to game
+                                await asyncio.sleep(1) # Small delay to ensure join completes
+                                leave_packet = await ExiT(None, key, iv)
+                                await SEndPacKeT(whisper_writer, online_writer, 'OnLine', leave_packet)
                             except:
                                 print('msg in squad')
 
-                        if inPuTMsG.startswith('leave'):
+                        if inPuTMsG.startswith('ptb5bn5'):
                             leave = await ExiT(uid,key,iv)
                             await SEndPacKeT(whisper_writer , online_writer , 'OnLine' , leave)
 
@@ -372,50 +477,38 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
 
                                 P = await SEndMsG(response.Data.chat_type, message, uid, chat_id, key, iv)
 
-                                uid2 = uid3 = uid4 = uid5 = None
-                                s = False
-
+                                uid_list = []
                                 try:
-                                    uid = int(parts[1])
-                                    uid2 = int(parts[2])
-                                    uid3 = int(parts[3])
-                                    uid4 = int(parts[4])
-                                    uid5 = int(parts[5])
-                                    idT = int(parts[5])
+                                    # Collect up to 5 UIDs
+                                    for i in range(1, min(len(parts), 6)):
+                                        try:
+                                            uid_val = int(parts[i])
+                                            uid_list.append(uid_val)
+                                        except ValueError:
+                                            break
+                                    
+                                    # Emote ID is usually the last part if not part of UIDs, 
+                                    # but based on prompt "execute the emot on the UID like this: @a uid1 uid2 up to ui5"
+                                    # and existing code looking for parts[5] as idT, I'll follow the @a uid... id pattern
+                                    
+                                    # In the original code:
+                                    # idT = int(parts[5]) or len(parts)-1
+                                    
+                                    idT = None
+                                    if len(parts) > 1:
+                                        try:
+                                            idT = int(parts[-1])
+                                        except ValueError:
+                                            pass
 
-                                except ValueError as ve:
-                                    print("ValueError:", ve)
-                                    s = True
-
-                                except Exception:
-                                    idT = len(parts) - 1
-                                    idT = int(parts[idT])
-                                    print(idT)
-                                    print(uid)
-
-                                if not s:
-                                    try:
+                                    if idT is not None:
                                         await SEndPacKeT(whisper_writer, online_writer, 'ChaT', P)
-
-                                        H = await Emote_k(uid, idT, key, iv,region)
-                                        await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
-
-                                        if uid2:
-                                            H = await Emote_k(uid2, idT, key, iv,region)
-                                            await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
-                                        if uid3:
-                                            H = await Emote_k(uid3, idT, key, iv,region)
-                                            await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
-                                        if uid4:
-                                            H = await Emote_k(uid4, idT, key, iv,region)
-                                            await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
-                                        if uid5:
-                                            H = await Emote_k(uid5, idT, key, iv,region)
-                                            await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
-                                        
-
-                                    except Exception as e:
-                                        pass
+                                        for u in uid_list:
+                                            if u != idT: # Don't emote on the ID itself if it was in the list
+                                                H = await Emote_k(u, idT, key, iv, region)
+                                                await SEndPacKeT(whisper_writer, online_writer, 'OnLine', H)
+                                except Exception as e:
+                                    print(f"Emote error: {e}")
 
 
                         if inPuTMsG in ("hi" , "hello" , "fan" , "salam" , "help" , "spideerio"):
@@ -428,13 +521,15 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
                             
             whisper_writer.close() ; await whisper_writer.wait_closed() ; whisper_writer = None
                     
-                    	
-                    	
+                        
+                        
         except Exception as e: print(f"ErroR {ip}:{port} - {e}") ; whisper_writer = None
         await asyncio.sleep(reconnect_delay)
 
 async def MaiiiinE():
-    Uid , Pw = '4280222442','6B31341C32B84193FDB5A2BF1EA34434DBA8C62CA4031065F9732098911D5546'
+    global bot_loop
+    bot_loop = asyncio.get_running_loop()
+    Uid , Pw = '4354298863','Sulav_4PMIH_BY_SPIDEERIO_GAMING_JBE7V'
     
 
     open_id , access_token = await GeNeRaTeAccEss(Uid , Pw)
@@ -480,7 +575,18 @@ async def MaiiiinE():
     #print(' - ReGioN => {region}'.format(region))
     print(f" - BoT STarTinG And OnLine on TarGet : {TarGeT} | BOT NAME : {acc_name}\n")
     print(f" - BoT sTaTus > GooD | Spideerio Gaming ! (:")    
-    print(f" - Insta > krix_i43 | File by ! (:")    
+    print(f" - Insta > krix_i43 | File by ! (:")
+    replit_domain = os.environ.get('REPLIT_DEV_DOMAIN') or os.environ.get('REPLIT_DOMAINS', '').split(',')[0]
+    if not replit_domain:
+        replit_domain = f"{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER')}.repl.co"
+    print(f" - Replit Dev Link: https://{replit_domain}")
+    
+    session_context['key'] = key
+    session_context['iv'] = iv
+    session_context['region'] = region
+    session_context['whisper_writer'] = whisper_writer
+    session_context['online_writer'] = online_writer
+    
     await asyncio.gather(task1 , task2)
     
 async def StarTinG():
@@ -490,4 +596,5 @@ async def StarTinG():
         except Exception as e: print(f"ErroR TcP - {e} => ResTarTinG ...")
 
 if __name__ == '__main__':
+    threading.Thread(target=run_flask, daemon=True).start()
     asyncio.run(StarTinG())
