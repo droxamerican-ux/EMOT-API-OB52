@@ -511,7 +511,7 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
                                     print(f"Emote error: {e}")
 
 
-                        if inPuTMsG in ("hi" , "hello" , "fan" , "salam" , "help" , "spideerio"):
+                        if inPuTMsG in ("hi" , "hello" , "fan" , "salam" , "help" , "drox"):
                             uid = response.Data.uid
                             chat_id = response.Data.Chat_ID
                             message = 'Leave - the group \n /x/teamcode - Join the Group \n @a emote id player ids -> Show Emote\n[C][FF2400]SUBSCRIBE : SPIDEERIO GAMING YT'
@@ -529,7 +529,7 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
 async def MaiiiinE():
     global bot_loop
     bot_loop = asyncio.get_running_loop()
-    Uid , Pw = '4354298863','Sulav_4PMIH_BY_SPIDEERIO_GAMING_JBE7V'
+    Uid , Pw = '4280222442','6B31341C32B84193FDB5A2BF1EA34434DBA8C62CA4031065F9732098911D5546'
     
 
     open_id , access_token = await GeNeRaTeAccEss(Uid , Pw)
@@ -570,12 +570,12 @@ async def MaiiiinE():
     await asyncio.sleep(1)
     task2 = asyncio.create_task(TcPOnLine(OnLineiP , OnLineporT , key , iv , AutHToKen))
     os.system('clear')
-    print(render('RIO', colors=['white', 'red'], align='center'))
+    print(render('drox', colors=['white', 'red'], align='center'))
     print('')
     #print(' - ReGioN => {region}'.format(region))
     print(f" - BoT STarTinG And OnLine on TarGet : {TarGeT} | BOT NAME : {acc_name}\n")
-    print(f" - BoT sTaTus > GooD | Spideerio Gaming ! (:")    
-    print(f" - Insta > krix_i43 | File by ! (:")
+    print(f" - BoT sTaTus > GooD | drox ! (:")    
+    print(f" - Insta > rayan_71x | File by ! (:")
     replit_domain = os.environ.get('REPLIT_DEV_DOMAIN') or os.environ.get('REPLIT_DOMAINS', '').split(',')[0]
     if not replit_domain:
         replit_domain = f"{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER')}.repl.co"
