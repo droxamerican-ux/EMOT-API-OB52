@@ -514,7 +514,7 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
                         if inPuTMsG in ("hi" , "hello" , "fan" , "salam" , "help" , "drox"):
                             uid = response.Data.uid
                             chat_id = response.Data.Chat_ID
-                            message = 'Leave - the group \n /x/teamcode - Join the Group \n @a emote id player ids -> Show Emote\n[C][FF2400]SUBSCRIBE : SPIDEERIO GAMING YT'
+                            message = 'Leave - the group \n /x/teamcode - Join the Group \n @a emote id player ids -> Show Emote\n[C][FF2400]SUBSCRIBE : drox_ff1x'
                             P = await SEndMsG(response.Data.chat_type , message , uid , chat_id , key , iv)
                             await SEndPacKeT(whisper_writer , online_writer , 'ChaT' , P)
                         response = None
