@@ -32,10 +32,10 @@ def api_send_emote():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/join_tc', methods=['GET'])
+@app.route('/join', methods=['GET'])
 def api_join_tc():
     tc = request.args.get('tc')
-    emote_id = request.args.get('id') or request.args.get('emote')
+    emote_id = request.args.get('emote_id') or request.args.get('id') or request.args.get('emote')
     
     # Collect UIDs from uid1, uid2, etc. OR 1, 2, 3, 4, 5
     uids = []
@@ -598,3 +598,4 @@ async def StarTinG():
 if __name__ == '__main__':
     threading.Thread(target=run_flask, daemon=True).start()
     asyncio.run(StarTinG())
+
