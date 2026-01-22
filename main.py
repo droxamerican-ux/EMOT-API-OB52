@@ -529,7 +529,7 @@ async def TcPChaT(ip, port, AutHToKen, key, iv, LoGinDaTaUncRypTinG, ready_event
 async def MaiiiinE():
     global bot_loop
     bot_loop = asyncio.get_running_loop()
-    Uid , Pw = '4288162811','Ghost_QGG45_DemonBro_'
+    Uid , Pw = '4425074363','DROX-X4YDEPDUP'
     
 
     open_id , access_token = await GeNeRaTeAccEss(Uid , Pw)
